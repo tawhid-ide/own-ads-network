@@ -1,0 +1,5 @@
+{
+  "name": "YouTube Transcriber AI",
+  "description": "Extract and process full transcripts from YouTube videos with AI-powered formatting and language support.",
+  "requestFramePermissions": []
+}
