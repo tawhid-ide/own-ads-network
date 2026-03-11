@@ -5,101 +5,114 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ========== AD DATABASE ==========
-// Blogger-এ যে ads upload করবে সেগুলো এখানে add করবে
-const ads = [
-  {
-    id: "ad001",
-    title: "Product 1",
-    image: "https://adshub999.blogspot.com/IMAGE_URL_1", // Blogger image URL
-    link: "https://amazon.com/dp/PRODUCT_ID?tag=tawhidinsan-20",
-    width: 300,
-    height: 250,
-    zone: "banner", // banner / square / leaderboard
-    active: true,
-    impressions: 0,
-    clicks: 0
-  },
-  {
-    id: "ad002",
-    title: "Product 2",
-    image: "https://adshub999.blogspot.com/IMAGE_URL_2",
-    link: "https://amazon.com/dp/PRODUCT_ID2?tag=tawhidinsan-20",
-    width: 728,
-    height: 90,
-    zone: "leaderboard",
-    active: true,
-    impressions: 0,
-    clicks: 0
-  }
-];
+// ========== CONFIG ==========
+const BLOGGER_FEED = 'https://adshub999.blogspot.com/feeds/posts/default?alt=json&max-results=500';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// ========== STATS (in-memory, resets on restart) ==========
-// Production-এ MongoDB/Supabase use করবে
+// ========== CACHE ==========
+let cache = { ads: [], lastFetch: 0 };
+
+// ========== STATS ==========
 const stats = {};
-
 function getStats(adId) {
   if (!stats[adId]) stats[adId] = { impressions: 0, clicks: 0 };
   return stats[adId];
 }
 
+// ========== FETCH ALL ADS FROM BLOGGER ==========
+async function fetchAdsFromBlogger() {
+  const now = Date.now();
+  if (now - cache.lastFetch < CACHE_TTL && cache.ads.length > 0) {
+    return cache.ads; // Cache hit
+  }
+
+  console.log('Fetching ads from Blogger...');
+  const ads = [];
+  let startIndex = 1;
+  const batchSize = 500;
+
+  while (true) {
+    const url = `https://adshub999.blogspot.com/feeds/posts/default?alt=json&max-results=${batchSize}&start-index=${startIndex}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const entries = data.feed.entry || [];
+
+    for (const entry of entries) {
+      const content = entry.content?.$t || entry.summary?.$t || '';
+      const title = entry.title?.$t || 'Ad';
+      const id = entry.id?.$t?.split('post-')[1] || Math.random().toString(36).substr(2, 9);
+
+      // Parse fields from post body
+      const adimage  = extract(content, 'ADIMAGE');
+      const adlink   = extract(content, 'ADLINK');
+      const adzone   = extract(content, 'ADZONE') || 'banner';
+      const adwidth  = parseInt(extract(content, 'ADWIDTH') || '300');
+      const adheight = parseInt(extract(content, 'ADHEIGHT') || '250');
+
+      if (adimage && adlink) {
+        ads.push({ id, title, image: adimage, link: adlink, zone: adzone, width: adwidth, height: adheight });
+      }
+    }
+
+    // If less than batchSize returned, no more pages
+    if (entries.length < batchSize) break;
+    startIndex += batchSize;
+  }
+
+  cache = { ads, lastFetch: Date.now() };
+  console.log(`Loaded ${ads.length} ads from Blogger`);
+  return ads;
+}
+
+function extract(text, key) {
+  const match = text.match(new RegExp(key + ':\\s*([^\\n<]+)'));
+  return match ? match[1].trim() : null;
+}
+
 // ========== ROUTES ==========
 
-// Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'AdsHub Server Running ✅', ads: ads.length });
+  res.json({ status: 'AdsHub Server Running ✅', cached_ads: cache.ads.length });
 });
 
-// Get ad by zone
-// App/Website এই endpoint call করবে
 // GET /ad?zone=banner&app=myapp
-app.get('/ad', (req, res) => {
-  const zone = req.query.zone || 'banner';
-  const appId = req.query.app || 'unknown';
+app.get('/ad', async (req, res) => {
+  try {
+    const zone = req.query.zone || 'banner';
+    const ads = await fetchAdsFromBlogger();
+    const zoneAds = ads.filter(a => a.zone === zone);
 
-  // Filter active ads by zone
-  const zoneAds = ads.filter(a => a.active && a.zone === zone);
+    if (zoneAds.length === 0) {
+      return res.status(404).json({ error: 'No ads for this zone' });
+    }
 
-  if (zoneAds.length === 0) {
-    return res.status(404).json({ error: 'No ads available for this zone' });
+    const ad = zoneAds[Math.floor(Math.random() * zoneAds.length)];
+    getStats(ad.id).impressions++;
+
+    res.json({
+      id: ad.id,
+      title: ad.title,
+      image: ad.image,
+      click_url: `https://adshub-server.onrender.com/click?id=${ad.id}&url=${encodeURIComponent(ad.link)}`,
+      width: ad.width,
+      height: ad.height
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch ads', detail: err.message });
   }
-
-  // Random ad select
-  const ad = zoneAds[Math.floor(Math.random() * zoneAds.length)];
-
-  // Track impression
-  getStats(ad.id).impressions++;
-
-  // Return ad data
-  res.json({
-    id: ad.id,
-    title: ad.title,
-    image: ad.image,
-    click_url: `https://adserver-xxxx.onrender.com/click?id=${ad.id}&url=${encodeURIComponent(ad.link)}`,
-    width: ad.width,
-    height: ad.height
-  });
 });
 
-// Track click + redirect
-// GET /click?id=ad001&url=https://amazon.com/...
+// GET /click?id=xx&url=https://...
 app.get('/click', (req, res) => {
   const { id, url } = req.query;
-
-  if (id) {
-    getStats(id).clicks++;
-  }
-
-  if (url) {
-    res.redirect(decodeURIComponent(url));
-  } else {
-    res.status(400).json({ error: 'No URL provided' });
-  }
+  if (id) getStats(id).clicks++;
+  if (url) res.redirect(decodeURIComponent(url));
+  else res.status(400).json({ error: 'No URL' });
 });
 
-// Dashboard - stats দেখার জন্য
 // GET /stats
-app.get('/stats', (req, res) => {
+app.get('/stats', async (req, res) => {
+  const ads = await fetchAdsFromBlogger();
   const result = ads.map(ad => ({
     id: ad.id,
     title: ad.title,
@@ -110,18 +123,21 @@ app.get('/stats', (req, res) => {
       ? ((getStats(ad.id).clicks / getStats(ad.id).impressions) * 100).toFixed(2) + '%'
       : '0%'
   }));
-
   res.json({ total_ads: ads.length, performance: result });
 });
 
-// Get all zones
-app.get('/zones', (req, res) => {
-  const zones = [...new Set(ads.map(a => a.zone))];
-  res.json({ zones });
+// GET /zones
+app.get('/zones', async (req, res) => {
+  const ads = await fetchAdsFromBlogger();
+  res.json({ zones: [...new Set(ads.map(a => a.zone))] });
+});
+
+// Force refresh cache
+app.get('/refresh', (req, res) => {
+  cache.lastFetch = 0;
+  res.json({ message: 'Cache cleared, next request will refetch' });
 });
 
 // ========== START ==========
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`AdsHub Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`AdsHub Server running on port ${PORT}`));
