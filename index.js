@@ -115,7 +115,7 @@ app.get('/sdk.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.send(`
 (function() {
-  var BASE = 'https://adshub-server.onrender.com';
+  var BASE = 'https://adshub-server-jzsp.onrender.com';
   function loadAds() {
     var slots = document.querySelectorAll('.adshub[data-key]');
     slots.forEach(function(slot) {
