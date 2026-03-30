@@ -1,11 +1,17 @@
-================================================
-BLOGGER POST FORMAT (আপডেটেড)
-================================================
+# AdsHub Server
 
-TITLE: যেকোনো নাম (e.g. Sony Headphones Display Ad)
+Dynamic ad server — Blogger as database, Render as backend.
 
-BODY (HTML mode-এ paste করো):
-------------------------------------------------
+## How it works
+- **New post = Ad live**
+- **Delete post = Ad off**
+- Cache refreshes every 5 minutes
+
+## Blogger Post Format
+
+Create a new post in HTML mode:
+
+```
 ADIMAGE: https://blogger.googleusercontent.com/...
 ADLINK: https://amazon.com/dp/XXXXX?tag=tawhidinsan-20
 ADZONE: banner
@@ -16,34 +22,37 @@ ADCTA: Shop Now
 ADBRAND: Sony
 ADWIDTH: 300
 ADHEIGHT: 200
-------------------------------------------------
+```
 
-ADZONE OPTIONS:   banner | main | popup | sticky | video
-ADTYPE OPTIONS:   display | native
+**ADZONE:** banner | main | popup | sticky | video  
+**ADTYPE:** display | native
 
-RULES:
-✅ Post Publish = Ad Live
-❌ Post Delete = Ad বন্ধ
-🔄 /refresh = সাথে সাথে update
+## Publisher Integration
 
-================================================
-AD SNIPPET (website/app/game এ paste করো)
-================================================
+```html
+<!-- Step 1: Add to <head> once -->
+<script src="https://adshub-server.onrender.com/sdk.js"></script>
 
-<!-- Display/Native Ad -->
-<div id="adshub-slot"></div>
-<script>
-  fetch('https://adshub-server.onrender.com/ad?key=YOUR_KEY_HERE&app=MY_APP')
-    .then(r => r.text())
-    .then(html => { document.getElementById('adshub-slot').innerHTML = html; });
-</script>
+<!-- Step 2: Place anywhere you want an ad -->
+<div class="adshub" data-key="YOUR_ZONE_KEY"></div>
+```
 
-================================================
-RENDER ENVIRONMENT VARIABLES
-================================================
-MAIN_KEY   = (যেকোনো random string, e.g. mk_a1b2c3d4)
-BANNER_KEY = (যেকোনো random string, e.g. bk_e5f6g7h8)
-POPUP_KEY  = (যেকোনো random string, e.g. pk_i9j0k1l2)
-STICKY_KEY = (যেকোনো random string, e.g. sk_m3n4o5p6)
-VIDEO_KEY  = (যেকোনো random string, e.g. vk_q7r8s9t0)
-================================================
+## Render Environment Variables
+
+```
+MAIN_KEY   = your_random_key
+BANNER_KEY = your_random_key
+POPUP_KEY  = your_random_key
+STICKY_KEY = your_random_key
+VIDEO_KEY  = your_random_key
+```
+
+## Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `/sdk.js` | Publisher SDK |
+| `/ad?key=KEY` | Serve ad HTML |
+| `/click?id=xx&url=xx` | Track click + redirect |
+| `/stats` | Performance data |
+| `/refresh` | Clear cache |
