@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ========== ZONE KEYS (Render Environment Variables) ==========
+// ========== ZONE KEYS ==========
 const ZONE_KEYS = {
   [process.env.MAIN_KEY]:   'main',
   [process.env.BANNER_KEY]: 'banner',
@@ -26,43 +26,39 @@ function getStats(id) {
   return stats[id];
 }
 
-// ========== FETCH ALL ADS FROM BLOGGER ==========
+// ========== FETCH ADS ==========
 async function fetchAds() {
   if (Date.now() - cache.lastFetch < CACHE_TTL && cache.ads.length > 0) return cache.ads;
-
   const ads = [];
   let startIndex = 1;
-
   while (true) {
     const url = `${BLOGGER_FEED}?alt=json&max-results=500&start-index=${startIndex}`;
     const res = await fetch(url);
     const data = await res.json();
     const entries = data.feed.entry || [];
-
     for (const entry of entries) {
       const content = entry.content?.$t || entry.summary?.$t || '';
       const id = entry.id?.$t?.split('post-')[1] || Math.random().toString(36).substr(2,9);
-
       const adimage = extract(content, 'ADIMAGE');
       const adlink  = extract(content, 'ADLINK');
-      const adzone  = extract(content, 'ADZONE') || 'banner';
-      const adtype  = extract(content, 'ADTYPE') || 'display'; // display | native
-      const adtitle = extract(content, 'ADTITLE') || 'Sponsored';
-      const addesc  = extract(content, 'ADDESC') || '';
-      const adcta   = extract(content, 'ADCTA') || 'Shop Now';
-      const adbrand = extract(content, 'ADBRAND') || '';
-      const adwidth  = parseInt(extract(content, 'ADWIDTH') || '300');
-      const adheight = parseInt(extract(content, 'ADHEIGHT') || '250');
-
       if (adimage && adlink) {
-        ads.push({ id, adzone, adtype, adimage, adlink, adtitle, addesc, adcta, adbrand, adwidth, adheight });
+        ads.push({
+          id,
+          adzone:  extract(content, 'ADZONE')  || 'banner',
+          adtype:  extract(content, 'ADTYPE')  || 'display',
+          adimage, adlink,
+          adtitle: extract(content, 'ADTITLE') || 'Sponsored',
+          addesc:  extract(content, 'ADDESC')  || '',
+          adcta:   extract(content, 'ADCTA')   || 'Shop Now',
+          adbrand: extract(content, 'ADBRAND') || '',
+          adwidth:  parseInt(extract(content, 'ADWIDTH')  || '300'),
+          adheight: parseInt(extract(content, 'ADHEIGHT') || '200'),
+        });
       }
     }
-
     if (entries.length < 500) break;
     startIndex += 500;
   }
-
   cache = { ads, lastFetch: Date.now() };
   console.log(`Loaded ${ads.length} ads`);
   return ads;
@@ -76,8 +72,7 @@ function extract(text, key) {
 // ========== AD HTML RENDERER ==========
 function renderAd(ad, clickUrl) {
   if (ad.adtype === 'native') {
-    return `
-<div style="font-family:system-ui,sans-serif;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;max-width:${ad.adwidth}px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+    return `<div style="font-family:system-ui,sans-serif;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;max-width:${ad.adwidth}px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
   <a href="${clickUrl}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px;">
     <img src="${ad.adimage}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0;" />
     <div style="flex:1;min-width:0;">
@@ -92,10 +87,7 @@ function renderAd(ad, clickUrl) {
   </div>
 </div>`;
   }
-
-  // Display Ad
-  return `
-<div style="font-family:system-ui,sans-serif;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;max-width:${ad.adwidth}px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+  return `<div style="font-family:system-ui,sans-serif;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;max-width:${ad.adwidth}px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
   <a href="${clickUrl}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block;">
     <img src="${ad.adimage}" style="width:100%;height:${ad.adheight}px;object-fit:cover;display:block;" />
     <div style="padding:12px 14px;">
@@ -116,35 +108,51 @@ app.get('/', (req, res) => {
   res.json({ status: 'AdsHub Server Running ✅', cached_ads: cache.ads.length });
 });
 
-// GET /ad?key=YOUR_ZONE_KEY&app=myapp&format=html|json
+// SDK.JS — publishers শুধু এই একটা script tag ব্যবহার করবে
+// <script src="https://adshub-server.onrender.com/sdk.js"></script>
+// <div class="adshub" data-key="YOUR_KEY"></div>
+app.get('/sdk.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`
+(function() {
+  var BASE = 'https://adshub-server.onrender.com';
+  function loadAds() {
+    var slots = document.querySelectorAll('.adshub[data-key]');
+    slots.forEach(function(slot) {
+      var key = slot.getAttribute('data-key');
+      if (!key || slot.dataset.loaded) return;
+      slot.dataset.loaded = 'true';
+      fetch(BASE + '/ad?key=' + encodeURIComponent(key))
+        .then(function(r) { return r.text(); })
+        .then(function(html) { slot.innerHTML = html; })
+        .catch(function() { slot.style.display = 'none'; });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadAds);
+  } else {
+    loadAds();
+  }
+})();
+`);
+});
+
+// GET /ad?key=ZONE_KEY
 app.get('/ad', async (req, res) => {
   try {
     const key = req.query.key;
-    const format = req.query.format || 'html';
-
-    if (!key || !ZONE_KEYS[key]) {
-      return res.status(401).json({ error: 'Invalid or missing key' });
-    }
-
+    if (!key || !ZONE_KEYS[key]) return res.status(401).send('<p style="color:red;font-size:12px;">Invalid key</p>');
     const zone = ZONE_KEYS[key];
     const ads = await fetchAds();
     const zoneAds = ads.filter(a => a.adzone === zone);
-
-    if (zoneAds.length === 0) return res.status(404).json({ error: 'No ads for this zone' });
-
+    if (zoneAds.length === 0) return res.status(404).send('');
     const ad = zoneAds[Math.floor(Math.random() * zoneAds.length)];
     getStats(ad.id).impressions++;
-
     const clickUrl = `https://adshub-server.onrender.com/click?id=${ad.id}&url=${encodeURIComponent(ad.adlink)}`;
-
-    if (format === 'json') {
-      return res.json({ id: ad.id, image: ad.adimage, title: ad.adtitle, desc: ad.addesc, cta: ad.adcta, click_url: clickUrl, width: ad.adwidth, height: ad.adheight });
-    }
-
     res.setHeader('Content-Type', 'text/html');
     res.send(renderAd(ad, clickUrl));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).send('');
   }
 });
 
@@ -169,7 +177,6 @@ app.get('/stats', async (req, res) => {
   res.json({ total_ads: ads.length, performance: result });
 });
 
-// Force cache refresh
 app.get('/refresh', (req, res) => {
   cache.lastFetch = 0;
   res.json({ message: 'Cache cleared ✅' });
@@ -177,3 +184,4 @@ app.get('/refresh', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`AdsHub running on port ${PORT}`));
+        
