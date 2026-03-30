@@ -109,13 +109,13 @@ app.get('/', (req, res) => {
 });
 
 // SDK.JS — publishers শুধু এই একটা script tag ব্যবহার করবে
-// <script src="https://adshub-server.onrender.com/sdk.js"></script>
+// <script src="https://adshub-server-jzsp.onrender.com/sdk.js"></script>
 // <div class="adshub" data-key="YOUR_KEY"></div>
 app.get('/sdk.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.send(`
 (function() {
-  var BASE = 'https://adshub-server-jzsp.onrender.com';
+  var BASE = 'https://adshub-server.onrender.com';
   function loadAds() {
     var slots = document.querySelectorAll('.adshub[data-key]');
     slots.forEach(function(slot) {
@@ -148,7 +148,7 @@ app.get('/ad', async (req, res) => {
     if (zoneAds.length === 0) return res.status(404).send('');
     const ad = zoneAds[Math.floor(Math.random() * zoneAds.length)];
     getStats(ad.id).impressions++;
-    const clickUrl = 'https://adshub-server-jzsp.onrender.com/click?id=${ad.id}&url=${encodeURIComponent(ad.adlink)}`;
+    const clickUrl = `https://adshub-server-jzsp.onrender.com/click?id=${ad.id}&url=${encodeURIComponent(ad.adlink)}`;
     res.setHeader('Content-Type', 'text/html');
     res.send(renderAd(ad, clickUrl));
   } catch (err) {
@@ -184,3 +184,4 @@ app.get('/refresh', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`AdsHub running on port ${PORT}`));
+      
