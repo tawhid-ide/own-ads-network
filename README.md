@@ -75,10 +75,10 @@ ADHEIGHT: 200
 ```
 
 **ADZONE options:**
-| Key | Zone |
-|---|---|
-| main | Hero / top of page |
-| banner | In-content / mid-page |
+| Key | Zone | type |
+|---|---|---|
+| main | Hero / top of page | display |
+| banner | In-content / mid-page | 
 | popup | Modal / interstitial |
 | sticky | Fixed bottom bar |
 | video | Before/after video |
