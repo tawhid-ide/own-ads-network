@@ -1,58 +1,205 @@
 # AdsHub Server
 
-Dynamic ad server — Blogger as database, Render as backend.
+Dynamic ad network — Blogger as database, Render as backend.
 
-## How it works
-- **New post = Ad live**
-- **Delete post = Ad off**
-- Cache refreshes every 5 minutes
+**Post publish = Ad live | Post delete = Ad off**
 
-## Blogger Post Format
+---
 
-Create a new post in HTML mode:
+## How It Works
 
 ```
-ADIMAGE: https://blogger.googleusercontent.com/...
+Blogger (adshub999.blogspot.com)
+         ↓ RSS feed
+Render (adshub-server.onrender.com)
+         ↓ sdk.js
+App / Website / Game
+```
+
+---
+
+## 1. Render Deploy Guide
+
+### Step 1 — GitHub repo ready
+Make sure these files are in root:
+```
+index.js
+package.json
+README.md
+```
+
+### Step 2 — Render setup
+1. render.com → **New Web Service**
+2. Connect GitHub repo: `Ad-s-hub-`
+3. Settings:
+   - **Runtime:** Node
+   - **Build Command:** `npm install`
+   - **Start Command:** `node index.js`
+
+### Step 3 — Environment Variables
+Render Dashboard → your service → **Environment** → Add these:
+
+```
+MAIN_KEY   = mk_a1b2c3d4
+BANNER_KEY = bk_e5f6g7h8
+POPUP_KEY  = pk_i9j0k1l2
+STICKY_KEY = sk_m3n4o5p6
+VIDEO_KEY  = vk_q7r8s9t0
+```
+> Use any random strings. Keep them secret.
+
+### Step 4 — Deploy
+**Manual Deploy → Deploy latest commit**
+
+### Step 5 — Verify
+Visit: `https://adshub-server.onrender.com`
+Should return: `{"status":"AdsHub Server Running ✅"}`
+
+---
+
+## 2. Blogger Post Format (Ad Creation)
+
+Go to **adshub999.blogspot.com** → New Post → **HTML mode** → paste:
+
+```
+ADIMAGE: https://blogger.googleusercontent.com/...your_image_url...
 ADLINK: https://amazon.com/dp/XXXXX?tag=tawhidinsan-20
 ADZONE: banner
 ADTYPE: display
-ADTITLE: Sony WH-1000XM5 Headphones
-ADDESC: Industry-leading noise cancellation with 30hr battery life.
+ADTITLE: Product Name Here
+ADDESC: Short description of the product. Keep it under 100 chars.
 ADCTA: Shop Now
-ADBRAND: Sony
+ADBRAND: Brand Name
 ADWIDTH: 300
 ADHEIGHT: 200
 ```
 
-**ADZONE:** banner | main | popup | sticky | video  
-**ADTYPE:** display | native
+**ADZONE options:**
+| Key | Zone |
+|---|---|
+| main | Hero / top of page |
+| banner | In-content / mid-page |
+| popup | Modal / interstitial |
+| sticky | Fixed bottom bar |
+| video | Before/after video |
 
-## Publisher Integration
+**ADTYPE options:**
+| Value | Style |
+|---|---|
+| display | Image + Title + Description + CTA button |
+| native | Small image + text side by side |
 
+> ✅ Publish = Ad live immediately (within 5 min cache)
+> ❌ Delete = Ad off
+> 🔄 Force update: visit `/refresh`
+
+---
+
+## 3. Publisher Integration
+
+### HTML / Website / Blogger
 ```html
-<!-- Step 1: Add to <head> once -->
+<!-- Step 1: Add once inside <head> -->
 <script src="https://adshub-server.onrender.com/sdk.js"></script>
 
 <!-- Step 2: Place anywhere you want an ad -->
-<div class="adshub" data-key="YOUR_ZONE_KEY"></div>
+<div class="adshub" data-key="bk_e5f6g7h8"></div>
 ```
 
-## Render Environment Variables
+### React / Next.js
+```jsx
+useEffect(() => {
+  const script = document.createElement('script');
+  script.src = 'https://adshub-server.onrender.com/sdk.js';
+  document.head.appendChild(script);
+}, []);
+
+// In JSX:
+<div className="adshub" data-key="bk_e5f6g7h8"></div>
+```
+
+### Android WebView
+```java
+webView.loadUrl("javascript:(function(){" +
+  "var s=document.createElement('script');" +
+  "s.src='https://adshub-server.onrender.com/sdk.js';" +
+  "document.head.appendChild(s);" +
+"})()");
+```
+
+---
+
+## 4. AI Prompt Guide (Monetize Any App/Website)
+
+When building any app or website with AI, add this to your prompt:
 
 ```
-MAIN_KEY   = your_random_key
-BANNER_KEY = your_random_key
-POPUP_KEY  = your_random_key
-STICKY_KEY = your_random_key
-VIDEO_KEY  = your_random_key
+## Monetization (AdsHub Ad Network)
+
+Do NOT use Google AdSense or AdMob.
+Use my custom ad network: AdsHub.
+
+SDK (add once in <head>):
+<script src="https://adshub-server.onrender.com/sdk.js"></script>
+
+Ad placement (use the appropriate key per zone):
+
+BANNER AD (in-content / mid-page):
+<div class="adshub" data-key="bk_e5f6g7h8"></div>
+
+MAIN AD (hero / top of page):
+<div class="adshub" data-key="mk_a1b2c3d4"></div>
+
+POPUP AD (modal / interstitial):
+<div class="adshub" data-key="pk_i9j0k1l2"></div>
+
+STICKY AD (fixed bottom bar):
+<div class="adshub" data-key="sk_m3n4o5p6"></div>
+
+VIDEO AD (before/after video content):
+<div class="adshub" data-key="vk_q7r8s9t0"></div>
+
+Rules:
+- Ads load automatically, no extra JS needed
+- If an ad fails to load, the slot silently hides
+- Place ads where user engagement is highest
+- Do not block main content with ads
 ```
 
-## Endpoints
+---
 
-| Endpoint | Description |
+## 5. Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/` | GET | Server status |
+| `/sdk.js` | GET | Publisher SDK script |
+| `/ad?key=KEY` | GET | Serve ad HTML by zone key |
+| `/click?id=xx&url=xx` | GET | Track click + redirect |
+| `/stats` | GET | All ads performance data |
+| `/refresh` | GET | Force clear cache |
+
+---
+
+## 6. Zone Keys Quick Reference
+
+> Replace with your actual keys from Render Environment Variables
+
+| Zone | Key Variable | Usage |
+|---|---|---|
+| Main | MAIN_KEY | Hero section, top banner |
+| Banner | BANNER_KEY | In-content, mid-page |
+| Popup | POPUP_KEY | Modal, interstitial |
+| Sticky | STICKY_KEY | Fixed bottom bar |
+| Video | VIDEO_KEY | Pre/post video |
+
+---
+
+## 7. Troubleshooting
+
+| Problem | Fix |
 |---|---|
-| `/sdk.js` | Publisher SDK |
-| `/ad?key=KEY` | Serve ad HTML |
-| `/click?id=xx&url=xx` | Track click + redirect |
-| `/stats` | Performance data |
-| `/refresh` | Clear cache |
+| Ad not showing | Check key is correct, check Blogger post format |
+| Old ad still showing | Visit `/refresh` |
+| Server slow first load | Free Render plan sleeps after inactivity — normal |
+| No ads in zone | Make sure ADZONE in post matches the zone |
