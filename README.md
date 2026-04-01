@@ -10,8 +10,8 @@ Dynamic ad network — Blogger as database, Render as backend.
 
 ```
 Blogger (adshub999.blogspot.com)
-         ↓ RSS feed
-Render (adshub-server.onrender.com)
+         ↓ RSS feed (5 min cache)
+Render (adshub-server-jzsp.onrender.com)
          ↓ sdk.js
 App / Website / Game
 ```
@@ -20,178 +20,169 @@ App / Website / Game
 
 ## 1. Render Deploy Guide
 
-### Step 1 — GitHub repo ready
-Make sure these files are in root:
+### Files needed in GitHub root:
 ```
 index.js
 package.json
 README.md
 ```
 
-### Step 2 — Render setup
-1. render.com → **New Web Service**
-2. Connect GitHub repo: `Ad-s-hub-`
-3. Settings:
-   - **Runtime:** Node
-   - **Build Command:** `npm install`
-   - **Start Command:** `node index.js`
+### Render Setup:
+- **Runtime:** Node
+- **Build Command:** `npm install`
+- **Start Command:** `node index.js`
 
-### Step 3 — Environment Variables
-Render Dashboard → your service → **Environment** → Add these:
-
+### Environment Variables:
 ```
-MAIN_KEY   = mk_a1b2c3d4
-BANNER_KEY = bk_e5f6g7h8
-POPUP_KEY  = pk_i9j0k1l2
-STICKY_KEY = sk_m3n4o5p6
-VIDEO_KEY  = vk_q7r8s9t0
+STICKY_KEY     = sk_m3n4o5p6
+SQUARE_KEY     = sq_a1b2c3d4
+FULLSCREEN_KEY = fs_e5f6g7h8
 ```
-> Use any random strings. Keep them secret.
 
-### Step 4 — Deploy
-**Manual Deploy → Deploy latest commit**
+### Deploy:
+Manual Deploy → Deploy latest commit
 
-### Step 5 — Verify
-Visit: `https://adshub-server.onrender.com`
-Should return: `{"status":"AdsHub Server Running ✅"}`
+### Verify:
+`https://adshub-server-jzsp.onrender.com` → `{"status":"AdsHub Server Running ✅"}`
 
 ---
 
-## 2. Blogger Post Format (Ad Creation)
+## 2. Ad Types
+
+| Type | Size | Use Case |
+|---|---|---|
+| `sticky` | 320×50 / 320×100 / 728×90 / 970×90 | Fixed bottom bar |
+| `square` | 300×250 (standard) | Inside content, most used |
+| `fullscreen` | Responsive | Popup/interstitial overlay |
+
+---
+
+## 3. Blogger Post Format
 
 Go to **adshub999.blogspot.com** → New Post → **HTML mode** → paste:
 
+### Sticky Ad
 ```
-ADIMAGE: https://blogger.googleusercontent.com/...your_image_url...
-ADLINK: https://amazon.com/dp/XXXXX?tag=tawhidinsan-20
-ADZONE: banner
-ADTYPE: display
-ADTITLE: Product Name Here
-ADDESC: Short description of the product. Keep it under 100 chars.
+ADMEDIA: https://blogger.googleusercontent.com/...
+ADLINK: https://amzn.to/xxxxx?tag=tawhidinsan-20
+ADZONE: sticky
+ADTITLE: Product Name
+ADDESC: Short description
 ADCTA: Shop Now
 ADBRAND: Brand Name
-ADWIDTH: 300
-ADHEIGHT: 200
 ```
 
-**ADZONE options:**
-| Key | Zone | type |
-|---|---|---|
-| main | Hero / top of page | display |
-| banner | In-content / mid-page | 
-| popup | Modal / interstitial |
-| sticky | Fixed bottom bar |
-| video | Before/after video |
+### Square Ad
+```
+ADMEDIA: https://blogger.googleusercontent.com/...
+ADLINK: https://amzn.to/xxxxx?tag=tawhidinsan-20
+ADZONE: square
+ADTITLE: Product Name
+ADDESC: Short description
+ADCTA: Shop Now
+ADBRAND: Brand Name
+```
 
-**ADTYPE options:**
-| Value | Style |
-|---|---|
-| display | Image + Title + Description + CTA button |
-| native | Small image + text side by side |
+### Fullscreen Ad
+```
+ADMEDIA: https://blogger.googleusercontent.com/...
+ADLINK: https://amzn.to/xxxxx?tag=tawhidinsan-20
+ADZONE: fullscreen
+ADTITLE: Product Name
+ADDESC: Short description
+ADCTA: Shop Now
+ADBRAND: Brand Name
+```
 
-> ✅ Publish = Ad live immediately (within 5 min cache)
-> ❌ Delete = Ad off
-> 🔄 Force update: visit `/refresh`
+### Video Ad (any type)
+`ADMEDIA` তে `.mp4` / `.webm` / `.ogg` URL দাও — বাকি সব same।
+Image URL → image দেখাবে | Video URL → autoplay muted loop video দেখাবে
+
+> ✅ Publish = Ad live | ❌ Delete = Ad off | 🔄 `/refresh` = force update
 
 ---
 
-## 3. Publisher Integration
+## 4. Publisher Integration
 
-### HTML / Website / Blogger
+### SDK (add once in `<head>`):
 ```html
-<!-- Step 1: Add once inside <head> -->
-<script src="https://adshub-server.onrender.com/sdk.js"></script>
-
-<!-- Step 2: Place anywhere you want an ad -->
-<div class="adshub" data-key="bk_e5f6g7h8"></div>
+<script src="https://adshub-server-jzsp.onrender.com/sdk.js"></script>
 ```
 
-### React / Next.js
-```jsx
-useEffect(() => {
-  const script = document.createElement('script');
-  script.src = 'https://adshub-server.onrender.com/sdk.js';
-  document.head.appendChild(script);
-}, []);
-
-// In JSX:
-<div className="adshub" data-key="bk_e5f6g7h8"></div>
-```
-
-### Android WebView
-```java
-webView.loadUrl("javascript:(function(){" +
-  "var s=document.createElement('script');" +
-  "s.src='https://adshub-server.onrender.com/sdk.js';" +
-  "document.head.appendChild(s);" +
-"})()");
-```
-
----
-
-## 4. AI Prompt Guide (Monetize Any App/Website)
-
-When building any app or website with AI, add this to your prompt:
-
-```
-## Monetization (AdsHub Ad Network)
-
-Do NOT use Google AdSense or AdMob.
-Use my custom ad network: AdsHub.
-
-SDK (add once in <head>):
-<script src="https://adshub-server.onrender.com/sdk.js"></script>
-
-Ad placement (use the appropriate key per zone):
-
-BANNER AD (in-content / mid-page):
-<div class="adshub" data-key="bk_e5f6g7h8"></div>
-
-MAIN AD (hero / top of page):
-<div class="adshub" data-key="mk_a1b2c3d4"></div>
-
-POPUP AD (modal / interstitial):
-<div class="adshub" data-key="pk_i9j0k1l2"></div>
-
-STICKY AD (fixed bottom bar):
+### Ad Slots (place in `<body>`):
+```html
+<!-- Sticky -->
 <div class="adshub" data-key="sk_m3n4o5p6"></div>
 
-VIDEO AD (before/after video content):
-<div class="adshub" data-key="vk_q7r8s9t0"></div>
+<!-- Square -->
+<div class="adshub" data-key="sq_a1b2c3d4"></div>
 
-Rules:
-- Ads load automatically, no extra JS needed
-- If an ad fails to load, the slot silently hides
-- Place ads where user engagement is highest
-- Do not block main content with ads
+<!-- Fullscreen -->
+<div class="adshub" data-key="fs_e5f6g7h8"></div>
+```
+
+### Sticky Ad wrapper (fixed bottom):
+```html
+<div style="position:fixed;bottom:0;left:0;right:0;z-index:999;background:#fff;border-top:1px solid #eee;">
+  <div class="adshub" data-key="sk_m3n4o5p6"></div>
+</div>
+```
+> Add `padding-bottom: 80px` to body so sticky doesn't cover content.
+
+---
+
+## 5. AI Prompt (copy this to monetize any app/website)
+
+```
+## Monetization — AdsHub Ad Network
+
+IMPORTANT: Follow these steps EXACTLY. Do not skip or reorder.
+
+STEP 1 — Inside the <head> tag, add this line:
+<script src="https://adshub-server-jzsp.onrender.com/sdk.js"></script>
+
+This MUST be inside <head>...</head>. NOT in <body>. NOT at the bottom.
+
+Correct placement:
+<head>
+  <meta charset="UTF-8">
+  <title>My App</title>
+  <script src="https://adshub-server-jzsp.onrender.com/sdk.js"></script>
+</head>
+
+STEP 2 — Inside <body>, place ad slots:
+
+Square (standard, use most):
+<div class="adshub" data-key="sq_a1b2c3d4"></div>
+
+Sticky bottom bar:
+<div style="position:fixed;bottom:0;left:0;right:0;z-index:999;">
+  <div class="adshub" data-key="sk_m3n4o5p6"></div>
+</div>
+
+Fullscreen/interstitial:
+<div class="adshub" data-key="fs_e5f6g7h8"></div>
+
+RULES:
+- SDK script MUST be in <head>
+- class="adshub" and data-key must be exact
+- Do NOT add any extra JavaScript for ads
+- Add padding-bottom:80px to body when using sticky ad
+- Do NOT use Google AdSense, AdMob, or any other network
 ```
 
 ---
 
-## 5. Endpoints
+## 6. Endpoints
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/` | GET | Server status |
-| `/sdk.js` | GET | Publisher SDK script |
-| `/ad?key=KEY` | GET | Serve ad HTML by zone key |
-| `/click?id=xx&url=xx` | GET | Track click + redirect |
-| `/stats` | GET | All ads performance data |
-| `/refresh` | GET | Force clear cache |
-
----
-
-## 6. Zone Keys Quick Reference
-
-> Replace with your actual keys from Render Environment Variables
-
-| Zone | Key Variable | Usage |
-|---|---|---|
-| Main | MAIN_KEY | Hero section, top banner |
-| Banner | BANNER_KEY | In-content, mid-page |
-| Popup | POPUP_KEY | Modal, interstitial |
-| Sticky | STICKY_KEY | Fixed bottom bar |
-| Video | VIDEO_KEY | Pre/post video |
+| Endpoint | Description |
+|---|---|
+| `/` | Server status |
+| `/sdk.js` | Publisher SDK |
+| `/ad?key=KEY` | Serve ad HTML |
+| `/click?id=xx&url=xx` | Track click + redirect |
+| `/stats` | Performance data |
+| `/refresh` | Force clear cache |
 
 ---
 
@@ -199,7 +190,8 @@ Rules:
 
 | Problem | Fix |
 |---|---|
-| Ad not showing | Check key is correct, check Blogger post format |
-| Old ad still showing | Visit `/refresh` |
-| Server slow first load | Free Render plan sleeps after inactivity — normal |
-| No ads in zone | Make sure ADZONE in post matches the zone |
+| Ad not showing | Check SDK is in `<head>`, check key is correct |
+| Wrong/old ad showing | Visit `/refresh` |
+| Server slow (first load) | Free Render plan sleeps after 15min inactivity — normal |
+| Fullscreen ad not covering screen | Wrap in `position:fixed;inset:0` div |
+| Sticky covering buttons | Add `padding-bottom:80px` to body |
