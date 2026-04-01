@@ -120,16 +120,21 @@ function renderAd(ad, clickUrl) {
   // ── FULLSCREEN ───────────────────────────────────────────────
   if (ad.adzone === 'fullscreen') {
     return `
-<div style="font-family:system-ui,sans-serif;position:relative;width:100%;height:100vh;background:#000;overflow:hidden;">
-  <a href="${clickUrl}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;text-decoration:none;color:#fff;">
-    ${mediaHtml(ad, 'width:100%;height:100%;object-fit:cover;display:block;opacity:0.85;')}
-    <div style="position:absolute;bottom:0;left:0;right:0;padding:24px 20px 40px;background:linear-gradient(transparent,rgba(0,0,0,0.85));">
-      ${ad.adtitle ? `<div style="font-size:22px;font-weight:700;margin-bottom:6px;">${ad.adtitle}</div>` : ''}
-      ${ad.addesc  ? `<div style="font-size:14px;opacity:0.85;margin-bottom:16px;line-height:1.5;">${ad.addesc}</div>` : ''}
-      <span style="display:inline-block;background:#ff9900;color:#fff;font-size:15px;font-weight:600;padding:12px 28px;border-radius:30px;">${ad.adcta}</span>
-    </div>
-    <div style="position:absolute;top:16px;right:16px;">
-      <span style="font-size:10px;background:rgba(255,255,255,0.2);color:#fff;padding:3px 8px;border-radius:4px;letter-spacing:.5px;">SPONSORED</span>
+<div style="font-family:system-ui,sans-serif;position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+  <div style="position:absolute;inset:0;background-image:url('${ad.isVideo ? '' : ad.admedia}');background-size:cover;background-position:center;filter:blur(20px) brightness(0.4);transform:scale(1.1);"></div>
+  <a href="${clickUrl}" target="_blank" rel="noopener"
+     style="position:relative;z-index:1;text-decoration:none;color:inherit;width:90%;max-width:400px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+    ${mediaHtml(ad, 'width:100%;height:auto;display:block;max-height:60vh;object-fit:contain;background:#000;')}
+    <div style="padding:14px 16px 18px;background:#fff;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        ${ad.adtitle ? `<div style="font-size:16px;font-weight:700;color:#1a1a1a;line-height:1.3;">${ad.adtitle}</div>` : ''}
+        <span style="font-size:9px;background:#f0f0f0;color:#888;padding:2px 6px;border-radius:3px;letter-spacing:.5px;flex-shrink:0;margin-left:8px;">SPONSORED</span>
+      </div>
+      ${ad.addesc ? `<div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.5;">${ad.addesc}</div>` : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="background:#ff9900;color:#fff;font-size:14px;font-weight:600;padding:9px 22px;border-radius:25px;">${ad.adcta}</span>
+        ${ad.adbrand ? `<span style="font-size:11px;color:#aaa;">${ad.adbrand}</span>` : ''}
+      </div>
     </div>
   </a>
 </div>`;
@@ -223,4 +228,3 @@ app.get('/refresh', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`AdsHub running on port ${PORT}`));
-    
