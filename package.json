@@ -1,13 +1,12 @@
 {
-  "name": "adshub-server",
+  "name": "ad-server-worker",
   "version": "1.0.0",
-  "description": "AdsHub Ad Server",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "start": "node index.js"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
   },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2"
+  "devDependencies": {
+    "wrangler": "^3.0.0"
   }
 }
