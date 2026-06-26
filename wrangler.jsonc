@@ -1,5 +1,5 @@
 {
-  "name": "ad-server",
+  "name": "ad-server-worker",
   "main": "worker/src/index.js",
   "compatibility_date": "2026-06-26",
   "workers_dev": true
