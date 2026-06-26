@@ -1,4 +1,4 @@
-const BLOG_ID = 1386150708509302279; // ← নিজের Blogger Blog ID বসান
+const BLOG_ID = "1386150708509302279"; // ← নিজের Blogger Blog ID বসান
 const CACHE_TTL = 300;          // 5 মিনিট ক্যাশ
 
 async function fetchAds() {
